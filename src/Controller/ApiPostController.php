@@ -6,6 +6,7 @@ namespace App\Controller;
  use App\Entity\FicheFrais;
  use App\Repository\PostRepository;
  use App\Repository\UserRepository;
+ use JMS\Serializer\SerializationContext;
  use Symfony\Component\HttpFoundation\Request;
  use Symfony\Component\HttpFoundation\Response;
  use Symfony\Component\Routing\Annotation\Route;
@@ -71,14 +72,13 @@ class ApiPostController extends AbstractController
     /**
      * @Route("/api/user/data/{id}", name="api_user_data")
      */
-    public function apiUserData(User $user): Response
+    public function apiUserData(User $user,$id): Response
     {
-
     //retour en json de notre public function.
         $serializer = \JMS\Serializer\SerializerBuilder::create()->build();
         $serializer->serialize($user, 'json');
 
-    return JsonResponse::fromJsonString($serializer->serialize($user, 'json'));
+    return JsonResponse::fromJsonString($serializer->serialize($user, 'json',SerializationContext::create()->enableMaxDepthChecks()));
     }
 
     /**
@@ -92,14 +92,11 @@ class ApiPostController extends AbstractController
         $connexion = json_decode($request->getContent());
 
         $user = $userRepo->findOneByEmail($connexion->email);
-        // $encodedPassword=
-        // $encoder->encodePassword(
-        // $user,
-        // $connexion->password
-        // );
             
         $isPasswordValid = $encoder->isPasswordValid($user, $connexion->password);
+
         $serializer = \JMS\Serializer\SerializerBuilder::create()->build();
+
         if (!$isPasswordValid) {
             return JsonResponse::fromJsonString($serializer->serialize(['user'=> false], 'json'));
         } else {

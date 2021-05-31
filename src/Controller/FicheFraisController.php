@@ -44,7 +44,7 @@ class FicheFraisController extends AbstractController
     public function newFicheFrais(EntityManagerInterface $manager): Response
     {
         $fraisForfaits = $manager->getRepository(FraisForfait::class)->findAll();
-//	      $newFileName = tempnam(sys_get_temp_dir(), 'myAppNamespace');
+        $newFileName = tempnam(sys_get_temp_dir(), 'myAppNamespace');
         return $this->render('fiche_frais/new.html.twig', [
             'fraisForfaits' => $fraisForfaits
         ]);
