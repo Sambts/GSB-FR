@@ -89,7 +89,8 @@ class UserFixtures extends Fixture
 		));
 
 		$user = new User();
-		
+
+		$user->setRoles(['ROLE_USER']);
 		$user->setEmail('user@user.fr');
 		$user->setNom('user');
 		$user->setPrenom('user');
