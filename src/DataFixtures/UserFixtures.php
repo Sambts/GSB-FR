@@ -599,5 +599,6 @@ class UserFixtures extends Fixture
 		$manager->persist($Finck);
 		$manager->persist($Fremont);
 		$manager->persist($Gest);
+		$manager->flush();
     }
 }
