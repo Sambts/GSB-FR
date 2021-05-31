@@ -5,7 +5,6 @@
 {% block body %}
 
     <div class="container shadow-lg rounded">
-
         <div class="card-header" style ="text-align:center"><h1>Modifier une fiche de frais</h1></div>
 
         <form action="{{ path('update_fiche_frais') }}" method="post" enctype="multipart/form-data">
@@ -45,7 +44,7 @@
                                 <input type="file" class="form-control-file" id="justificatif_{{item.id}}" name="files[{{item.id}}]">
                             </td>
                             <td class="form-group">
-                                <input type="date" class="form-control" name="dateJustificatifs[{{item.id}}]" id="dateJustificatifs_{{item.id}}" value="">
+                                <input type="date" class="form-control" name="dateJustificatifs[{{item.id}}]" id="dateJustificatifs_{{item.id}}" />
                             </td>
                         </tr>
                     {% endfor %}
@@ -155,6 +154,4 @@
             i = i + 1;
         });
     </script>
-
 {% endblock %}
-

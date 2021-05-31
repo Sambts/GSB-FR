@@ -2,21 +2,21 @@
 
 namespace App\Controller;
 
+use App\Entity\FicheFrais;
+use App\Repository\FicheFraisRepository;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
+
  use App\Entity\User;
- use App\Entity\FicheFrais;
  use App\Repository\PostRepository;
  use App\Repository\UserRepository;
- use JMS\Serializer\SerializationContext;
- use Symfony\Component\HttpFoundation\Request;
  use Symfony\Component\HttpFoundation\Response;
  use Symfony\Component\Routing\Annotation\Route;
  use Symfony\Component\HttpFoundation\JsonResponse;
- use Symfony\Component\Security\Core\User\UserInterface;
- use Symfony\Component\Security\Core\User\UserProviderInterface;
  use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
- use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 class ApiPostController extends AbstractController
+
 {
     /**
      * @Route("/api/user/list/{id}", name="api_user_list")
@@ -72,13 +72,14 @@ class ApiPostController extends AbstractController
     /**
      * @Route("/api/user/data/{id}", name="api_user_data")
      */
-    public function apiUserData(User $user,$id): Response
+    public function apiUserData(User $user): Response
     {
+
     //retour en json de notre public function.
         $serializer = \JMS\Serializer\SerializerBuilder::create()->build();
         $serializer->serialize($user, 'json');
 
-    return JsonResponse::fromJsonString($serializer->serialize($user, 'json',SerializationContext::create()->enableMaxDepthChecks()));
+    return JsonResponse::fromJsonString($serializer->serialize($user, 'json'));
     }
 
     /**
@@ -92,11 +93,14 @@ class ApiPostController extends AbstractController
         $connexion = json_decode($request->getContent());
 
         $user = $userRepo->findOneByEmail($connexion->email);
+        // $encodedPassword=
+        // $encoder->encodePassword(
+        // $user,
+        // $connexion->password
+        // );
             
         $isPasswordValid = $encoder->isPasswordValid($user, $connexion->password);
-
         $serializer = \JMS\Serializer\SerializerBuilder::create()->build();
-
         if (!$isPasswordValid) {
             return JsonResponse::fromJsonString($serializer->serialize(['user'=> false], 'json'));
         } else {
@@ -172,5 +176,3 @@ class ApiPostController extends AbstractController
         return JsonResponse::fromJsonString($serializer->serialize($fichefrais, 'json'));
     }
 }
-
-

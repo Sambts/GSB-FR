@@ -28,7 +28,13 @@ class FicheFraisController extends AbstractController
      */
     public function index(FicheFraisRepository $repo): Response
     {
-        $liste = $repo->findAll();
+        $user = $this->getUser();
+        if (in_array("ROLE_ADMIN", $user->getRoles()) || in_array("ROLE_SUPER_ADMIN", $user->getRoles()) || in_array("ROLE_COMPTABLE", $user->getRoles())) {
+            $liste = $repo->findAll();
+        } else {
+            $liste = $repo->findByUtilisateurFicheFrais($user);
+        }
+        
 
         return $this->render('fiche_frais/index.html.twig', [
             'controller_name' => 'FicheFraisController',
@@ -44,7 +50,6 @@ class FicheFraisController extends AbstractController
     public function newFicheFrais(EntityManagerInterface $manager): Response
     {
         $fraisForfaits = $manager->getRepository(FraisForfait::class)->findAll();
-        $newFileName = tempnam(sys_get_temp_dir(), 'myAppNamespace');
         return $this->render('fiche_frais/new.html.twig', [
             'fraisForfaits' => $fraisForfaits
         ]);
@@ -174,13 +179,20 @@ class FicheFraisController extends AbstractController
     /**
      * @Route("/fiche/frais/{id}", name="fiche_frais_detail")
      */
-    public function detailFiche(FicheFrais $id)
+    public function detailFiche(FicheFrais $id, EntityManagerInterface $manager)
     {
+        $statuts = $manager->getRepository(StatutLigne::class)->findAll();
+        $etats = $manager->getRepository(EtatFiche::class)->findAll();
+
         return $this->render(
             'fiche_frais/detail.html.twig', [
-            'ficheFrais' =>$id
+            'ficheFrais' =>$id,
+            'statuts' => $statuts,
+            'etats' => $etats
         ]);
     }
+
+    
 
     /**
      * @Route("/fiche/frais/edit/{id}", name="fiche_frais_edit")
@@ -222,10 +234,12 @@ class FicheFraisController extends AbstractController
         $idLignesFraisForfait = $request->request->get("idLigneFraisForfait");
         foreach ($quantites as  $idFraisForfait=>$qte){
             $ligneff=null;
+            $insert = false;
             if ($idLignesFraisForfait[$idFraisForfait] != 0) {
                 $ligneff = $manager->getRepository(FicheFrais::class)->find($idLignesFraisForfait[$idFraisForfait]);
             }
             if ($ligneff == null) {
+                $insert = true;
                 $ligneff = new LigneFraisForfait();
                 $ligneff->setDateCreationLigneFraisForfait($dateNow);
                 $ligneff->setUtilisateurLigneFraisForfait($user);
@@ -235,7 +249,9 @@ class FicheFraisController extends AbstractController
             }
             $ligneff->setQuantite($qte);
             $ligneff->setDateLigneFraisForfait($dateNow);
-            $manager->persist($ligneff);
+            if ( $insert == true) {
+                $manager->persist($ligneff);
+            }            
             $manager->flush();
 
             if ($fichiers[$idFraisForfait] != null) {
@@ -273,12 +289,14 @@ class FicheFraisController extends AbstractController
         $dateFhf = $request->request->get('dateFhf');
         $justificatifFhf = $request->files->get('justificatifFhf');
         $montantFhf = $request->request->get('montantFhf');
+        $insert = false;
         foreach ($montantFhf as $key=>$valeur){
             $lignefhf = null;
             if (substr($key, 0, 1) != "'") {
                 $lignefhf = $manager->getRepository(LigneFraisHorsForfait::class)->find($key);
             }
             if ($lignefhf == null) {
+                $insert = true;
                 $lignefhf = new LigneFraisHorsForfait();
                 $lignefhf->setDateCreationLigneFraisHorsForfait($dateNow);
                 $lignefhf->setUtilisateurLigneFraisHorsForfait($user);
@@ -290,7 +308,9 @@ class FicheFraisController extends AbstractController
             $lignefhf->setMontant($valeur);
             $lignefhf->setDateLigneFraisHorsForfait(DateTime::createFromFormat('Y-m-d', $dateFhf[$key]));
             $lignefhf->setLibelle($libelleFhf[$key]);
-            $manager->persist($lignefhf);
+            if ($insert == true) {
+                $manager->persist($lignefhf);
+            }
             $manager->flush();
 
             if ($justificatifFhf[$key] != null) {
@@ -322,6 +342,33 @@ class FicheFraisController extends AbstractController
                 $ficheFrais->setNbJustificatif($ficheFrais->getNbJustificatif() + 1);
                 $manager->flush();
             }
+        }
+
+        return $this->redirectToRoute('fiche_frais');
+    }
+
+    /**
+     * @Route("/fiche/frais/comptable/save", name="update_fiche_frais_comptable_save", methods={"GET","POST"}) 
+     */
+    public function ficheFraisComptableSave(EntityManagerInterface $manager, Request $request): Response
+    {
+        //dd($request);
+        $ficheFrais = $manager->getRepository(FicheFrais::class)->find($request->request->get("idFicheFrais"));
+        $ficheFrais->setEtatFicheFrais($manager->getRepository(EtatFiche::class)->find($request->request->get("etat")));
+        $manager->flush();
+
+        $arrayStatut = $request->request->get("statut");
+        foreach ($arrayStatut as $idFraisForfait => $statutLigne) {
+            $ligneFraisForfait = $manager->getRepository(LigneFraisForfait::class)->find($idFraisForfait);
+            $ligneFraisForfait->setStatutLigneFraisForfait($manager->getRepository(StatutLigne::class)->find($statutLigne));
+            $manager->flush();
+        }
+
+        $arrayStatutFhf = $request->request->get("statutFhf");
+        foreach ($arrayStatutFhf as $idFraisHorsForfait => $statutLigneFhf) {
+            $ligneFhf = $manager->getRepository(LigneFraisHorsForfait::class)->find($idFraisHorsForfait);
+            $ligneFhf->setStatutLigneFraisHorsForfait($manager->getRepository(StatutLigne::class)->find($statutLigneFhf));
+            $manager->flush();
         }
 
         return $this->redirectToRoute('fiche_frais');
